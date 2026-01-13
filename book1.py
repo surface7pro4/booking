@@ -55,7 +55,7 @@ def send_email(to_email, subject, body):
     sender_password = st.secrets["GMAIL_APP_PASSWORD"]
 
     msg = MIMEMultipart()
-    msg["From"] = f"Menlo Booking System <{sender_email}>"
+    msg["From"] = f"Booking System <{sender_email}>"
     msg["To"] = to_email
     msg["Subject"] = subject
 
