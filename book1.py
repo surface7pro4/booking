@@ -51,8 +51,8 @@ def save_booking(booking):
 # EMAIL FUNCTION
 # -----------------------------
 def send_email(to_email, subject, body):
-    sender_email = "surface7nis@gmail.com"
-    sender_password = "ssqruxexlbdbgae"  # no spaces
+    sender_email = st.secrets["surface7nis@gmail.com"]
+    sender_password = st.secrets["ssqruxexlbdbgae"]  # no spaces
 
     msg = MIMEMultipart()
     msg["From"] = f"Booking System <{sender_email}>"
