@@ -11,7 +11,7 @@ from email.mime.multipart import MIMEMultipart
 # CONFIG
 # -----------------------------
 st.set_page_config(page_title="Booking System", layout="centered")
-st.title("Menlo Booking System")
+st.title("Booking System")
 
 FIREBASE_DB = "https://book1-bc265-default-rtdb.asia-southeast1.firebasedatabase.app"
 
@@ -52,8 +52,8 @@ def save_booking(booking):
 # -----------------------------
 def send_email(to_email, subject, body):
     # Gmail config (replace with your email and app password)
-    sender_email = "your_email@gmail.com"
-    sender_password = "your_app_password"
+    sender_email = "surface7nis@gmail.com"
+    sender_password = "ssqr uxex lbdv bgae"
 
     msg = MIMEMultipart()
     msg["From"] = sender_email
@@ -77,7 +77,7 @@ def send_email(to_email, subject, body):
 # DISPLAY MENLO STATUS
 # -----------------------------
 menlo_status = get_menlo_status()
-st.header("Menlo Status: " + ("ON" if menlo_status=="ON" else "OFF"))
+st.header("System Status: " + ("ON" if menlo_status=="ON" else "OFF"))
 
 # -----------------------------
 # LOAD BOOKINGS
