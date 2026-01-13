@@ -51,11 +51,11 @@ def save_booking(booking):
 # EMAIL FUNCTION
 # -----------------------------
 def send_email(to_email, subject, body):
-    sender_email = st.secrets["surface7nis@gmail.com"]
-    sender_password = st.secrets["ssqruxexlbdbgae"]  # no spaces
+    sender_email = st.secrets["GMAIL_EMAIL"]
+    sender_password = st.secrets["GMAIL_APP_PASSWORD"]
 
     msg = MIMEMultipart()
-    msg["From"] = f"Booking System <{sender_email}>"
+    msg["From"] = f"Menlo Booking System <{sender_email}>"
     msg["To"] = to_email
     msg["Subject"] = subject
 
@@ -67,8 +67,9 @@ def send_email(to_email, subject, body):
             server.send_message(msg)
         return True
     except Exception as e:
-        print("Email send failed:", e)
+        st.error(f"Email send failed: {e}")
         return False
+
 
 # -----------------------------
 # DISPLAY MENLO STATUS
