@@ -51,23 +51,20 @@ def save_booking(booking):
 # EMAIL FUNCTION
 # -----------------------------
 def send_email(to_email, subject, body):
-    # Gmail config (replace with your email and app password)
     sender_email = "surface7nis@gmail.com"
-    sender_password = "ssqr uxex lbdv bgae"
+    sender_password = "ssqruxexlbdbgae"  # no spaces
 
     msg = MIMEMultipart()
-    msg["From"] = sender_email
+    msg["From"] = f"Booking System <{sender_email}>"
     msg["To"] = to_email
     msg["Subject"] = subject
 
     msg.attach(MIMEText(body, "plain"))
 
     try:
-        server = smtplib.SMTP("smtp.gmail.com", 587)
-        server.starttls()
-        server.login(sender_email, sender_password)
-        server.send_message(msg)
-        server.quit()
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+            server.login(sender_email, sender_password)
+            server.send_message(msg)
         return True
     except Exception as e:
         print("Email send failed:", e)
@@ -149,8 +146,8 @@ if submit:
                 # Send confirmation email
                 send_email(
                     to_email=email,
-                    subject="Menlo Booking Confirmation",
-                    body=f"Hello {name},\n\nYour booking for {experiment} from {start_date} to {end_date} has been confirmed.\n\nThank you!"
+                    subject="Booking Confirmation",
+                    body=f"Hello {name},\n\nYour booking from {start_date} to {end_date} has been confirmed.\n\nThank you!"
                 )
 
                 # Reload bookings
@@ -171,7 +168,7 @@ for _, row in bookings.iterrows():
         send_email(
             to_email=row["Email"],
             subject="Menlo Booking Reminder",
-            body=f"Hello {row['Name']},\n\nThis is a reminder that your booking for {row['Experiment Type']} is tomorrow ({row['Start Date']})."
+            body=f"Hello {row['Name']},\n\nThis is a reminder that your booking is tomorrow ({row['Start Date']})."
         )
 
 # -----------------------------
@@ -182,6 +179,6 @@ st.header("Current Bookings")
 if bookings.empty:
     st.info("No bookings yet.")
 else:
-    display_cols = ["Name", "Email", "Start Date", "End Date", "Experiment Type"]
+    display_cols = ["Name", "Start Date", "End Date", "Experiment Type"]
     bookings_display = bookings[display_cols].sort_values("Start Date")
     st.dataframe(bookings_display, use_container_width=True, hide_index=True)
