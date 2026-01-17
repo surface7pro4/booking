@@ -6,6 +6,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import date, timedelta
 from streamlit_autorefresh import st_autorefresh
+import uuid
 
 # -----------------------------
 # CONFIG
@@ -31,8 +32,7 @@ SMTP_PORT = 587  # TLS
 st_autorefresh(interval=5000, key="live_refresh")
 
 # -----------------------------
-# EMAIL FUNCTION
-# (keep exactly as is)
+# EMAIL FUNCTION (UNCHANGED)
 # -----------------------------
 def send_email(to_email, name, start, end):
     try:
@@ -81,16 +81,16 @@ def get_bookings():
         if data:
             df = pd.DataFrame(data.values())
             # Ensure all expected columns exist
-            for col in ["Name", "Email", "Start Date", "End Date", "Experiment Type"]:
+            for col in ["Name", "Email", "Start Date", "End Date", "Experiment Type", "Booking ID"]:
                 if col not in df.columns:
                     df[col] = ""
             df["Start Date"] = pd.to_datetime(df["Start Date"]).dt.date
             df["End Date"] = pd.to_datetime(df["End Date"]).dt.date
             return df
         else:
-            return pd.DataFrame(columns=["Name", "Email", "Start Date", "End Date", "Experiment Type"])
+            return pd.DataFrame(columns=["Name", "Email", "Start Date", "End Date", "Experiment Type", "Booking ID"])
     except:
-        return pd.DataFrame(columns=["Name", "Email", "Start Date", "End Date", "Experiment Type"])
+        return pd.DataFrame(columns=["Name", "Email", "Start Date", "End Date", "Experiment Type", "Booking ID"])
 
 def save_booking(booking):
     try:
@@ -102,9 +102,20 @@ def save_booking(booking):
 # -----------------------------
 # THINGSBOARD FUNCTION
 # -----------------------------
-def send_to_thingsboard(data):
+def send_to_thingsboard(booking):
+    """
+    Send a single booking as telemetry to ThingsBoard.
+    Each booking has a unique Booking ID to prevent overwriting previous bookings.
+    This allows a Timeseries Table widget to display all bookings.
+    """
     try:
-        requests.post(TB_URL, json=data, timeout=5)
+        telemetry = {
+            f"name_{booking['Booking ID']}": booking["Name"],
+            f"start_date_{booking['Booking ID']}": str(booking["Start Date"]),
+            f"end_date_{booking['Booking ID']}": str(booking["End Date"]),
+            f"experiment_type_{booking['Booking ID']}": booking["Experiment Type"]
+        }
+        requests.post(TB_URL, json=telemetry, timeout=5)
     except:
         pass
 
@@ -113,27 +124,16 @@ def send_to_thingsboard(data):
 # -----------------------------
 status = get_system_status()
 st.header(f"System Status: {'ONLINE' if status == 'ON' else 'OFF'}")
-send_to_thingsboard({"system_status": status})
+# Optional: send status to ThingsBoard as a single key
+try:
+    requests.post(TB_URL, json={"system_status": status}, timeout=5)
+except:
+    pass
 
 # -----------------------------
 # LOAD BOOKINGS
 # -----------------------------
 bookings = get_bookings()
-
-# -----------------------------
-# PUSH ALL BOOKINGS TO THINGSBOARD
-# -----------------------------
-if not bookings.empty:
-    bookings_list = [
-        {
-            "namedisplay": row["Name"],
-            "start_date": str(row["Start Date"]),
-            "end_date": str(row["End Date"]),
-            "experiment_type": row["Experiment Type"]
-        }
-        for _, row in bookings.iterrows()
-    ]
-    send_to_thingsboard({"all_bookings": bookings_list})
 
 # -----------------------------
 # BOOKING FORM
@@ -162,8 +162,7 @@ if submit:
     if not name or not email:
         st.error("Please enter name and email.")
     else:
-        # Reload bookings to ensure we check conflicts against latest
-        bookings = get_bookings()
+        bookings = get_bookings()  # reload latest bookings
 
         # Check for conflicts
         conflict = any(start_date <= row["End Date"] and end_date >= row["Start Date"]
@@ -171,35 +170,24 @@ if submit:
         if conflict:
             st.warning("Selected dates are already booked.")
         else:
-            # Create booking
+            booking_id = str(uuid.uuid4())  # unique booking ID
             booking_data = {
                 "Name": name,
                 "Email": email,
                 "Start Date": str(start_date),
                 "End Date": str(end_date),
-                "Experiment Type": experiment
+                "Experiment Type": experiment,
+                "Booking ID": booking_id
             }
 
             if save_booking(booking_data):
                 st.success("Booking confirmed!")
 
-                # Send confirmation email (unchanged)
+                # Send email (unchanged)
                 send_email(email, name, start_date, end_date)
 
-                # Reload bookings for display
-                bookings = get_bookings()
-
-                # Update ThingsBoard with all bookings
-                bookings_list = [
-                    {
-                        "namedisplay": row["Name"],
-                        "start_date": str(row["Start Date"]),
-                        "end_date": str(row["End Date"]),
-                        "experiment_type": row["Experiment Type"]
-                    }
-                    for _, row in bookings.iterrows()
-                ]
-                send_to_thingsboard({"all_bookings": bookings_list})
+                # Send to ThingsBoard (each booking individually with unique ID)
+                send_to_thingsboard(booking_data)
             else:
                 st.error("Failed to save booking.")
 
@@ -207,6 +195,7 @@ if submit:
 # DISPLAY BOOKINGS ON STREAMLIT
 # -----------------------------
 st.header("Current Bookings")
+bookings = get_bookings()  # ensure latest
 if bookings.empty:
     st.info("No bookings yet.")
 else:
