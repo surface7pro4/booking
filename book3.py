@@ -117,17 +117,24 @@ else:
     bookings = pd.DataFrame(columns=[
         "Name", "Email", "Start Date", "End Date", "Experiment Type"
     ])
+# -----------------------------
+# PUSH ALL BOOKINGS TO THINGSBOARD
+# -----------------------------
+bookings_list = []
 
-# -----------------------------
-# PUSH PREVIOUS BOOKINGS TO THINGSBOARD
-# -----------------------------
 for _, row in bookings.iterrows():
-    send_to_thingsboard({
-        "namedisplay": row["Name"],
+    bookings_list.append({
+        "namedisplay": row["Name"],   # name to display
         "start_date": str(row["Start Date"]),
         "end_date": str(row["End Date"]),
         "experiment_type": row["Experiment Type"]
     })
+
+# Send the array in ONE request
+send_to_thingsboard({
+    "all_bookings": bookings_list
+})
+
 
 # -----------------------------
 # BOOKING FORM
@@ -177,19 +184,26 @@ if submit:
                 # Send confirmation email
                 send_email(email, name, start_date, end_date)
 
-                # Reload bookings
+                               # Reload bookings
                 bookings = pd.DataFrame(get_bookings())
                 bookings["Start Date"] = pd.to_datetime(bookings["Start Date"]).dt.date
                 bookings["End Date"] = pd.to_datetime(bookings["End Date"]).dt.date
-
-                # Send all bookings individually to ThingsBoard
+                
+                # Prepare full array
+                bookings_list = []
                 for _, row in bookings.iterrows():
-                    send_to_thingsboard({
+                    bookings_list.append({
                         "namedisplay": row["Name"],
                         "start_date": str(row["Start Date"]),
                         "end_date": str(row["End Date"]),
                         "experiment_type": row["Experiment Type"]
                     })
+                
+                # Send all bookings in one telemetry push
+                send_to_thingsboard({
+                    "all_bookings": bookings_list
+                })
+
 
             else:
                 st.error("Failed to save booking.")
