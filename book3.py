@@ -6,7 +6,6 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import date, timedelta
 from streamlit_autorefresh import st_autorefresh
-import time
 
 # -----------------------------
 # CONFIG
@@ -104,7 +103,6 @@ def send_to_thingsboard(data):
 # -----------------------------
 status = get_system_status()
 st.header(f"System Status: {'ONLINE' if status == 'ON' else 'OFF'}")
-
 send_to_thingsboard({"system_status": status})
 
 # -----------------------------
@@ -121,6 +119,17 @@ else:
     ])
 
 # -----------------------------
+# PUSH PREVIOUS BOOKINGS TO THINGSBOARD
+# -----------------------------
+for _, row in bookings.iterrows():
+    send_to_thingsboard({
+        "namedisplay": row["Name"],
+        "start_date": str(row["Start Date"]),
+        "end_date": str(row["End Date"]),
+        "experiment_type": row["Experiment Type"]
+    })
+
+# -----------------------------
 # BOOKING FORM
 # -----------------------------
 st.header("Book a Measurement Slot")
@@ -128,31 +137,32 @@ st.header("Book a Measurement Slot")
 with st.form("booking_form"):
     name = st.text_input("Name")
     email = st.text_input("Email")
-
     experiment = st.selectbox(
         "Experiment Type",
         ["Co-Polarization", "Cross-Polarization"]
     )
-
     today = date.today()
     start_date, end_date = st.date_input(
         "Booking Date Range",
         value=(today, today + timedelta(days=1)),
         min_value=today
     )
-
     submit = st.form_submit_button("Submit Booking")
 
+# -----------------------------
+# HANDLE SUBMISSION
+# -----------------------------
 if submit:
     if not name or not email:
         st.error("Please enter name and email.")
     else:
+        # Check for conflicts
         conflict = any(start_date <= row["End Date"] and end_date >= row["Start Date"]
                        for _, row in bookings.iterrows())
-
         if conflict:
             st.warning("Selected dates are already booked.")
         else:
+            # Create booking
             booking_data = {
                 "Name": name,
                 "Email": email,
@@ -167,38 +177,33 @@ if submit:
                 # Send confirmation email
                 send_email(email, name, start_date, end_date)
 
-                # Reload all bookings from Firebase
+                # Reload bookings
                 bookings = pd.DataFrame(get_bookings())
-                if not bookings.empty:
-                    bookings["Start Date"] = pd.to_datetime(bookings["Start Date"]).dt.date
-                    bookings["End Date"] = pd.to_datetime(bookings["End Date"]).dt.date
+                bookings["Start Date"] = pd.to_datetime(bookings["Start Date"]).dt.date
+                bookings["End Date"] = pd.to_datetime(bookings["End Date"]).dt.date
 
-                # Send full bookings array to ThingsBoard
-                bookings_list = []
+                # Send all bookings individually to ThingsBoard
                 for _, row in bookings.iterrows():
-             
                     send_to_thingsboard({
-                        "namedisplay": name,  # use namedisplay instead of Name
-                        "start_date": str(start_date),
-                        "end_date": str(end_date),
-                        "experiment_type": experiment
-                        })
+                        "namedisplay": row["Name"],
+                        "start_date": str(row["Start Date"]),
+                        "end_date": str(row["End Date"]),
+                        "experiment_type": row["Experiment Type"]
+                    })
 
             else:
                 st.error("Failed to save booking.")
 
 # -----------------------------
-# DISPLAY BOOKINGS
+# DISPLAY BOOKINGS ON STREAMLIT
 # -----------------------------
 st.header("Current Bookings")
-
 if bookings.empty:
     st.info("No bookings yet.")
 else:
     bookings_display = bookings[
         ["Name", "Start Date", "End Date", "Experiment Type"]
     ].sort_values("Start Date")
-
     st.dataframe(
         bookings_display,
         use_container_width=True,
