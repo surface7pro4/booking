@@ -176,13 +176,13 @@ if submit:
                 # Send full bookings array to ThingsBoard
                 bookings_list = []
                 for _, row in bookings.iterrows():
-                     send_to_thingsboard({
-                        "name": row["Name"],
-                        "start_date": str(row["Start Date"]),
-                        "end_date": str(row["End Date"]),
-                        "experiment_type": row["Experiment Type"]
-                    })
-               
+             
+                    send_to_thingsboard({
+                        "namedisplay": name,  # use namedisplay instead of Name
+                        "start_date": str(start_date),
+                        "end_date": str(end_date),
+                        "experiment_type": experiment
+                        })
 
             else:
                 st.error("Failed to save booking.")
