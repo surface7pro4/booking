@@ -21,9 +21,9 @@ TB_URL = f"https://thingsboard.cloud/api/v1/{TB_DEVICE_TOKEN}/telemetry"
 
 # Email (SMTP)
 SMTP_EMAIL = "surface7nis@gmail.com"
-SMTP_PASSWORD = "lslcfalitzjzdctp "  # the 16-character app password
+SMTP_PASSWORD = "lslcfalitzjzdctp "  # 16-character app password
 SMTP_SERVER = "smtp.gmail.com"
-SMTP_PORT = 587  # or 465 for SSL
+SMTP_PORT = 587  # TLS
 
 # -----------------------------
 # AUTO-REFRESH
@@ -58,7 +58,8 @@ Thank you.
         server.send_message(msg)
         server.quit()
         return True
-    except:
+    except Exception as e:
+        st.error(f"Email failed: {e}")
         return False
 
 # -----------------------------
@@ -91,18 +92,9 @@ def save_booking(booking):
 # -----------------------------
 # THINGSBOARD FUNCTION
 # -----------------------------
-def send_to_thingsboard(bookings_df):
-    """Send the full array of bookings to ThingsBoard"""
-    bookings_list = []
-    for _, row in bookings_df.iterrows():
-        bookings_list.append({
-            "name": row["Name"],
-            "start_date": str(row["Start Date"]),
-            "end_date": str(row["End Date"]),
-            "experiment_type": row["Experiment Type"]
-        })
+def send_to_thingsboard(data):
     try:
-        requests.post(TB_URL, json={"bookings": bookings_list}, timeout=5)
+        requests.post(TB_URL, json=data, timeout=5)
     except:
         pass
 
@@ -112,8 +104,7 @@ def send_to_thingsboard(bookings_df):
 status = get_system_status()
 st.header(f"System Status: {'ONLINE' if status == 'ON' else 'OFF'}")
 
-# Send system status to ThingsBoard
-send_to_thingsboard(pd.DataFrame(get_bookings()))  # Also pushes bookings array
+send_to_thingsboard({"system_status": status})
 
 # -----------------------------
 # LOAD BOOKINGS
@@ -158,11 +149,8 @@ if submit:
     if not name or not email:
         st.error("Please enter name and email.")
     else:
-        conflict = False
-        for _, row in bookings.iterrows():
-            if start_date <= row["End Date"] and end_date >= row["Start Date"]:
-                conflict = True
-                break
+        conflict = any(start_date <= row["End Date"] and end_date >= row["Start Date"]
+                       for _, row in bookings.iterrows())
 
         if conflict:
             st.warning("Selected dates are already booked.")
@@ -178,15 +166,16 @@ if submit:
             if save_booking(booking_data):
                 st.success("Booking confirmed!")
 
-                # Send email
+                # Send confirmation email
                 send_email(email, name, start_date, end_date)
 
-                # Reload bookings and push full array to ThingsBoard
-                bookings = pd.DataFrame(get_bookings())
-                if not bookings.empty:
-                    bookings["Start Date"] = pd.to_datetime(bookings["Start Date"]).dt.date
-                    bookings["End Date"] = pd.to_datetime(bookings["End Date"]).dt.date
-                send_to_thingsboard(bookings)
+                # Send booking to ThingsBoard
+                send_to_thingsboard({
+                    "new_booking": True,
+                    "start_date": str(start_date),
+                    "end_date": str(end_date),
+                    "experiment_type": experiment
+                })
 
             else:
                 st.error("Failed to save booking.")
