@@ -6,6 +6,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import date, timedelta
 from streamlit_autorefresh import st_autorefresh
+import time
 
 # -----------------------------
 # CONFIG
@@ -175,7 +176,7 @@ if submit:
                 # Send full bookings array to ThingsBoard
                 bookings_list = []
                 for _, row in bookings.iterrows():
-                    bookings_list.append({
+                     send_to_thingsboard({
                         "name": row["Name"],
                         "start_date": str(row["Start Date"]),
                         "end_date": str(row["End Date"]),
