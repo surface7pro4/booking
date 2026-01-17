@@ -88,14 +88,17 @@ def save_booking(booking):
     except:
         return False
 
-# -----------------------------
-# THINGSBOARD FUNCTION
-# -----------------------------
-def send_to_thingsboard(data):
-    try:
-        requests.post(TB_URL, json=data, timeout=5)
-    except:
-        pass
+# Push the full bookings array to ThingsBoard
+bookings_list = []
+for _, row in bookings.iterrows():
+    bookings_list.append({
+        "name": row["Name"],
+        "start_date": str(row["Start Date"]),
+        "end_date": str(row["End Date"]),
+        "experiment_type": row["Experiment Type"]
+    })
+
+requests.post(TB_URL, json={"bookings": bookings_list}, timeout=5)
 
 # -----------------------------
 # SYSTEM STATUS
