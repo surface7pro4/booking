@@ -32,6 +32,7 @@ st_autorefresh(interval=5000, key="live_refresh")
 
 # -----------------------------
 # EMAIL FUNCTION
+# (keep exactly as is)
 # -----------------------------
 def send_email(to_email, name, start, end):
     try:
@@ -73,14 +74,23 @@ def get_system_status():
         return "OFF"
 
 def get_bookings():
+    """Return all bookings as a DataFrame"""
     try:
         r = requests.get(f"{FIREBASE_DB}/bookings.json", timeout=5)
         data = r.json()
         if data:
-            return [v for _, v in data.items()]
-        return []
+            df = pd.DataFrame(data.values())
+            # Ensure all expected columns exist
+            for col in ["Name", "Email", "Start Date", "End Date", "Experiment Type"]:
+                if col not in df.columns:
+                    df[col] = ""
+            df["Start Date"] = pd.to_datetime(df["Start Date"]).dt.date
+            df["End Date"] = pd.to_datetime(df["End Date"]).dt.date
+            return df
+        else:
+            return pd.DataFrame(columns=["Name", "Email", "Start Date", "End Date", "Experiment Type"])
     except:
-        return []
+        return pd.DataFrame(columns=["Name", "Email", "Start Date", "End Date", "Experiment Type"])
 
 def save_booking(booking):
     try:
@@ -108,33 +118,22 @@ send_to_thingsboard({"system_status": status})
 # -----------------------------
 # LOAD BOOKINGS
 # -----------------------------
-bookings = pd.DataFrame(get_bookings())
+bookings = get_bookings()
 
-if not bookings.empty:
-    bookings["Start Date"] = pd.to_datetime(bookings["Start Date"]).dt.date
-    bookings["End Date"] = pd.to_datetime(bookings["End Date"]).dt.date
-else:
-    bookings = pd.DataFrame(columns=[
-        "Name", "Email", "Start Date", "End Date", "Experiment Type"
-    ])
 # -----------------------------
 # PUSH ALL BOOKINGS TO THINGSBOARD
 # -----------------------------
-bookings_list = []
-
-for _, row in bookings.iterrows():
-    bookings_list.append({
-        "namedisplay": row["Name"],   # name to display
-        "start_date": str(row["Start Date"]),
-        "end_date": str(row["End Date"]),
-        "experiment_type": row["Experiment Type"]
-    })
-
-# Send the array in ONE request
-send_to_thingsboard({
-    "all_bookings": bookings_list
-})
-
+if not bookings.empty:
+    bookings_list = [
+        {
+            "namedisplay": row["Name"],
+            "start_date": str(row["Start Date"]),
+            "end_date": str(row["End Date"]),
+            "experiment_type": row["Experiment Type"]
+        }
+        for _, row in bookings.iterrows()
+    ]
+    send_to_thingsboard({"all_bookings": bookings_list})
 
 # -----------------------------
 # BOOKING FORM
@@ -163,6 +162,9 @@ if submit:
     if not name or not email:
         st.error("Please enter name and email.")
     else:
+        # Reload bookings to ensure we check conflicts against latest
+        bookings = get_bookings()
+
         # Check for conflicts
         conflict = any(start_date <= row["End Date"] and end_date >= row["Start Date"]
                        for _, row in bookings.iterrows())
@@ -181,25 +183,25 @@ if submit:
             if save_booking(booking_data):
                 st.success("Booking confirmed!")
 
-                # Send confirmation email
+                # Send confirmation email (unchanged)
                 send_email(email, name, start_date, end_date)
 
-                # Reload bookings
-                bookings = pd.DataFrame(get_bookings())
-                bookings["Start Date"] = pd.to_datetime(bookings["Start Date"]).dt.date
-                bookings["End Date"] = pd.to_datetime(bookings["End Date"]).dt.date
+                # Reload bookings for display
+                bookings = get_bookings()
 
-                # Send each booking individually to ThingsBoard
-                for _, row in bookings.iterrows():
-                    send_to_thingsboard({
+                # Update ThingsBoard with all bookings
+                bookings_list = [
+                    {
                         "namedisplay": row["Name"],
                         "start_date": str(row["Start Date"]),
                         "end_date": str(row["End Date"]),
                         "experiment_type": row["Experiment Type"]
-                    })
+                    }
+                    for _, row in bookings.iterrows()
+                ]
+                send_to_thingsboard({"all_bookings": bookings_list})
             else:
                 st.error("Failed to save booking.")
-
 
 # -----------------------------
 # DISPLAY BOOKINGS ON STREAMLIT
@@ -211,9 +213,4 @@ else:
     bookings_display = bookings[
         ["Name", "Start Date", "End Date", "Experiment Type"]
     ].sort_values("Start Date")
-    st.dataframe(
-        bookings_display,
-        use_container_width=True,
-        hide_index=True
-    )
-
+    st.dataframe(bookings_display, use_container_width=True, hide_index=True)
