@@ -177,23 +177,24 @@ if submit:
                 # Send confirmation email
                 send_email(email, name, start_date, end_date)
 
-                                   # Send all bookings array to ThingsBoard after any new booking
-                    bookings = pd.DataFrame(get_bookings())
-                    bookings["Start Date"] = pd.to_datetime(bookings["Start Date"]).dt.date
-                    bookings["End Date"] = pd.to_datetime(bookings["End Date"]).dt.date
-                    
-                    bookings_list = []
-                    for _, row in bookings.iterrows():
-                        bookings_list.append({
-                            "namedisplay": row["Name"],
-                            "start_date": str(row["Start Date"]),
-                            "end_date": str(row["End Date"]),
-                            "experiment_type": row["Experiment Type"]
-                        })
-                    
-                    send_to_thingsboard({
-                        "all_bookings": bookings_list
+                # Send all bookings array to ThingsBoard after any new booking
+                bookings = pd.DataFrame(get_bookings())
+                bookings["Start Date"] = pd.to_datetime(bookings["Start Date"]).dt.date
+                bookings["End Date"] = pd.to_datetime(bookings["End Date"]).dt.date
+                
+                bookings_list = []
+                for _, row in bookings.iterrows():
+                    bookings_list.append({
+                        "namedisplay": row["Name"],
+                        "start_date": str(row["Start Date"]),
+                        "end_date": str(row["End Date"]),
+                        "experiment_type": row["Experiment Type"]
                     })
+                
+                send_to_thingsboard({
+                    "all_bookings": bookings_list
+                })
+
 
 
             else:
