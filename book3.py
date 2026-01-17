@@ -182,7 +182,7 @@ if submit:
                         "end_date": str(row["End Date"]),
                         "experiment_type": row["Experiment Type"]
                     })
-                send_to_thingsboard({"bookings": bookings_list})
+               
 
             else:
                 st.error("Failed to save booking.")
