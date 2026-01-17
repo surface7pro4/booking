@@ -16,7 +16,7 @@ st.title("Measurement Setup Booking System")
 FIREBASE_DB = "https://book1-bc265-default-rtdb.asia-southeast1.firebasedatabase.app"
 
 # ThingsBoard
-TB_DEVICE_TOKEN = "xtyhA80dxqI6ctmUZDno"
+TB_DEVICE_TOKEN = "Bj4z82RwfDPw3334Jkth"
 TB_URL = f"https://thingsboard.cloud/api/v1/{TB_DEVICE_TOKEN}/telemetry"
 
 # Email (SMTP)
