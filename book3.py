@@ -184,29 +184,22 @@ if submit:
                 # Send confirmation email
                 send_email(email, name, start_date, end_date)
 
-                               # Reload bookings
+                # Reload bookings
                 bookings = pd.DataFrame(get_bookings())
                 bookings["Start Date"] = pd.to_datetime(bookings["Start Date"]).dt.date
                 bookings["End Date"] = pd.to_datetime(bookings["End Date"]).dt.date
-                
-                # Prepare full array
-                bookings_list = []
+
+                # Send each booking individually to ThingsBoard
                 for _, row in bookings.iterrows():
-                    bookings_list.append({
+                    send_to_thingsboard({
                         "namedisplay": row["Name"],
                         "start_date": str(row["Start Date"]),
                         "end_date": str(row["End Date"]),
                         "experiment_type": row["Experiment Type"]
                     })
-                
-                # Send all bookings in one telemetry push
-                send_to_thingsboard({
-                    "all_bookings": bookings_list
-                })
-
-
             else:
                 st.error("Failed to save booking.")
+
 
 # -----------------------------
 # DISPLAY BOOKINGS ON STREAMLIT
