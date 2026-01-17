@@ -156,7 +156,7 @@ if submit:
             st.warning("Selected dates are already booked.")
         else:
             booking_data = {
-                "Name": name,
+                "Name": str(name),
                 "Email": email,
                 "Start Date": str(start_date),
                 "End Date": str(end_date),
@@ -172,6 +172,7 @@ if submit:
                 # Send booking to ThingsBoard
                 send_to_thingsboard({
                     "new_booking": True,
+                    "name":str(name),
                     "start_date": str(start_date),
                     "end_date": str(end_date),
                     "experiment_type": experiment
@@ -189,7 +190,7 @@ if bookings.empty:
     st.info("No bookings yet.")
 else:
     bookings_display = bookings[
-        ["Name", "Email", "Start Date", "End Date", "Experiment Type"]
+        ["Name", "Start Date", "End Date", "Experiment Type"]
     ].sort_values("Start Date")
 
     st.dataframe(
