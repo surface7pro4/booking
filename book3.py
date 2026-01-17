@@ -142,9 +142,6 @@ with st.form("booking_form"):
 
     submit = st.form_submit_button("Submit Booking")
 
-# -----------------------------
-# HANDLE SUBMISSION
-# -----------------------------
 if submit:
     if not name or not email:
         st.error("Please enter name and email.")
@@ -156,7 +153,7 @@ if submit:
             st.warning("Selected dates are already booked.")
         else:
             booking_data = {
-                "Name": str(name_display),
+                "Name": name,
                 "Email": email,
                 "Start Date": str(start_date),
                 "End Date": str(end_date),
@@ -169,14 +166,22 @@ if submit:
                 # Send confirmation email
                 send_email(email, name, start_date, end_date)
 
-                # Send booking to ThingsBoard
-                send_to_thingsboard({
-                    "new_booking": True,
-                    "name_display":str(name_display),
-                    "start_date": str(start_date),
-                    "end_date": str(end_date),
-                    "experiment_type": experiment
-                })
+                # Reload all bookings from Firebase
+                bookings = pd.DataFrame(get_bookings())
+                if not bookings.empty:
+                    bookings["Start Date"] = pd.to_datetime(bookings["Start Date"]).dt.date
+                    bookings["End Date"] = pd.to_datetime(bookings["End Date"]).dt.date
+
+                # Send full bookings array to ThingsBoard
+                bookings_list = []
+                for _, row in bookings.iterrows():
+                    bookings_list.append({
+                        "name": row["Name"],
+                        "start_date": str(row["Start Date"]),
+                        "end_date": str(row["End Date"]),
+                        "experiment_type": row["Experiment Type"]
+                    })
+                send_to_thingsboard({"bookings": bookings_list})
 
             else:
                 st.error("Failed to save booking.")
