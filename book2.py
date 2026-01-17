@@ -16,14 +16,14 @@ st.title("Measurement Setup Booking System")
 FIREBASE_DB = "https://book1-bc265-default-rtdb.asia-southeast1.firebasedatabase.app"
 
 # ThingsBoard
-TB_DEVICE_TOKEN = "xtyhA80dxqI6ctmUZDno"
+TB_DEVICE_TOKEN = "Bj4z82RwfDPw3334Jkth"
 TB_URL = f"https://thingsboard.cloud/api/v1/{TB_DEVICE_TOKEN}/telemetry"
 
 # Email (SMTP)
-SMTP_EMAIL = "surface7nis@gmail.com"
-SMTP_PASSWORD = "lslcfalitzjzdctp "  # the 16-character app password
 SMTP_SERVER = "smtp.gmail.com"
-SMTP_PORT = 587  # or 465 for SSL
+SMTP_PORT = 587
+SMTP_EMAIL = "surface7nis@gmail.com"
+SMTP_PASSWORD = "lslcfalitzjzdctp "
 
 # -----------------------------
 # AUTO-REFRESH
@@ -58,7 +58,8 @@ Thank you.
         server.send_message(msg)
         server.quit()
         return True
-    except:
+    except Exception as e:
+        print(e)
         return False
 
 # -----------------------------
@@ -91,11 +92,26 @@ def save_booking(booking):
 # -----------------------------
 # THINGSBOARD FUNCTION
 # -----------------------------
-def send_to_thingsboard(data):
+def push_bookings_to_thingsboard(bookings_df):
+    bookings_list = []
+    for _, row in bookings_df.iterrows():
+        bookings_list.append({
+            "name": row["Name"],
+            "email": row["Email"],
+            "start_date": str(row["Start Date"]),
+            "end_date": str(row["End Date"]),
+            "experiment_type": row["Experiment Type"]
+        })
     try:
-        requests.post(TB_URL, json=data, timeout=5)
-    except:
-        pass
+        requests.post(TB_URL, json={"bookings": bookings_list}, timeout=5)
+    except Exception as e:
+        print("ThingsBoard push error:", e)
+
+def push_system_status_to_thingsboard(status):
+    try:
+        requests.post(TB_URL, json={"system_status": status}, timeout=5)
+    except Exception as e:
+        print("ThingsBoard status error:", e)
 
 # -----------------------------
 # SYSTEM STATUS
@@ -103,9 +119,7 @@ def send_to_thingsboard(data):
 status = get_system_status()
 st.header(f"System Status: {'ONLINE' if status == 'ON' else 'OFF'}")
 
-send_to_thingsboard({
-    "system_status": status
-})
+push_system_status_to_thingsboard(status)
 
 # -----------------------------
 # LOAD BOOKINGS
@@ -120,6 +134,9 @@ else:
         "Name", "Email", "Start Date", "End Date", "Experiment Type"
     ])
 
+# Push current bookings to ThingsBoard on load
+push_bookings_to_thingsboard(bookings)
+
 # -----------------------------
 # BOOKING FORM
 # -----------------------------
@@ -128,7 +145,6 @@ st.header("Book a Measurement Slot")
 with st.form("booking_form"):
     name = st.text_input("Name")
     email = st.text_input("Email")
-
     experiment = st.selectbox(
         "Experiment Type",
         ["Co-Polarization", "Cross-Polarization"]
@@ -173,13 +189,13 @@ if submit:
                 # Send email
                 send_email(email, name, start_date, end_date)
 
-                # Send booking to ThingsBoard
-                send_to_thingsboard({
-                    "new_booking": True,
-                    "start_date": str(start_date),
-                    "end_date": str(end_date),
-                    "experiment_type": experiment
-                })
+                # Reload bookings and push to ThingsBoard
+                bookings = pd.DataFrame(get_bookings())
+                if not bookings.empty:
+                    bookings["Start Date"] = pd.to_datetime(bookings["Start Date"]).dt.date
+                    bookings["End Date"] = pd.to_datetime(bookings["End Date"]).dt.date
+
+                push_bookings_to_thingsboard(bookings)
 
             else:
                 st.error("Failed to save booking.")
@@ -201,3 +217,4 @@ else:
         use_container_width=True,
         hide_index=True
     )
+
