@@ -156,7 +156,7 @@ if submit:
             st.warning("Selected dates are already booked.")
         else:
             booking_data = {
-                "Name": str(name),
+                "Name": str(name_display),
                 "Email": email,
                 "Start Date": str(start_date),
                 "End Date": str(end_date),
@@ -172,7 +172,7 @@ if submit:
                 # Send booking to ThingsBoard
                 send_to_thingsboard({
                     "new_booking": True,
-                    "name":str(name),
+                    "name_display":str(name_display),
                     "start_date": str(start_date),
                     "end_date": str(end_date),
                     "experiment_type": experiment
