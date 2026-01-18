@@ -166,7 +166,7 @@ if submit:
                 "Email": email,
                 "Start Date": str(start_date),
                 "End Date": str(end_date),
-                "Experiment Type": experiment
+                "Experiment Type": experiment,
                 "Date and Time Booked": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             }
 
