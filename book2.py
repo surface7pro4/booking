@@ -6,6 +6,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import date, timedelta
 from streamlit_autorefresh import st_autorefresh
+from datetime import datetime
 
 # -----------------------------
 # CONFIG
@@ -166,6 +167,7 @@ if submit:
                 "Start Date": str(start_date),
                 "End Date": str(end_date),
                 "Experiment Type": experiment
+                "Date and Time Booked": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             }
 
             if save_booking(booking_data):
@@ -194,7 +196,7 @@ if bookings.empty:
     st.info("No bookings yet.")
 else:
     bookings_display = bookings[
-        ["Name", "Email", "Start Date", "End Date", "Experiment Type"]
+        ["Name", "Email", "Start Date", "End Date", "Experiment Type","Date and Time Booked"]
     ].sort_values("Start Date")
 
     st.dataframe(
