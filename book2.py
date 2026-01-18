@@ -6,8 +6,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import date, timedelta
 from streamlit_autorefresh import st_autorefresh
-from datetime import datetime
-
+from datetime import datetime, timezone, timedelta
 # -----------------------------
 # CONFIG
 # -----------------------------
@@ -163,13 +162,14 @@ if submit:
         if conflict:
             st.warning("Selected dates are already booked.")
         else:
+            SGT = timezone(timedelta(hours=8)
             booking_data = {
                 "Name": name,
                 "Email": email,
                 "Start Date": str(start_date),
                 "End Date": str(end_date),
                 "Experiment Type": experiment,
-                "Date and Time Booked": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                "Date and Time Booked": datetime.now(SGT).strftime("%Y-%m-%d, %H:%M:%S)
             }
 
             if save_booking(booking_data):
