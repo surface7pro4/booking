@@ -169,7 +169,7 @@ if submit:
                 "Start Date": str(start_date),
                 "End Date": str(end_date),
                 "Experiment Type": experiment,
-                "Date and Time Booked": datetime.now(SGT).strftime("%Y-%m-%d, %H:%M:%S)
+                "Date and Time Booked": datetime.now(SGT).strftime("%Y-%m-%d, %H:%M:%S")
             }
 
             if save_booking(booking_data):
