@@ -162,7 +162,7 @@ if submit:
         if conflict:
             st.warning("Selected dates are already booked.")
         else:
-            SGT = timezone(timedelta(hours=8)
+            SGT = timezone(timedelta(hours=8))
             booking_data = {
                 "Name": name,
                 "Email": email,
