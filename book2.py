@@ -114,13 +114,15 @@ send_to_thingsboard({
 # -----------------------------
 bookings = pd.DataFrame(get_bookings())
 
+# Ensure all expected columns exist (fix KeyError)
+for col in ["Name", "Email", "Start Date", "End Date", "Experiment Type", "Date and Time Booked"]:
+    if col not in bookings.columns:
+        bookings[col] = ""
+
 if not bookings.empty:
     bookings["Start Date"] = pd.to_datetime(bookings["Start Date"]).dt.date
     bookings["End Date"] = pd.to_datetime(bookings["End Date"]).dt.date
-else:
-    bookings = pd.DataFrame(columns=[
-        "Name", "Email", "Start Date", "End Date", "Experiment Type"
-    ])
+
 
 # -----------------------------
 # BOOKING FORM
