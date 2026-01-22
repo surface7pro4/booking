@@ -1,4 +1,5 @@
-streamlit-autorefresh
-requests
-pandas
 streamlit
+altair==4.2.2
+pandas
+requests
+streamlit-autorefresh
